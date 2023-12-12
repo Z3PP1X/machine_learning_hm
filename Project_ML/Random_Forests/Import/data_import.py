@@ -10,12 +10,18 @@ class RandomTree:
         self.subset_value = round(pow(self.dataframe.shape[1], 0.5))
         self.get_dataset_columns()
 
+    def get_recommended_subset(self, subset_value):
+        self.subset_value = subset_value
+        print(f'Recommended subset size is: {subset_value}')
+        return subset_value
+
 
     '''Importiert den Datensatz anhand des instanzierten Namens'''     
 
     def import_data(self, data):
         self.dataframe = pd.read_csv(f'{data}.csv')
         self.dataframe.dropna(inplace= True)
+        return self.dataframe
 
     '''Löscht eine Spalte anhand des gegebenen Indexes'''
 
@@ -25,14 +31,17 @@ class RandomTree:
     
     ''' Gibt die Namen aller Spalten des Datensatzes aus'''
 
-    def get_dataset_columns(self) -> None:
-        print('Available Datapoints: ', list(self.dataframe.columns))
+    def get_dataset_columns(self):
+        columns_list = list(self.dataframe.columns)
+        print(f'Available Datapoints: {columns_list}')
+        return columns_list
 
     '''Gibt die Werte einer Spalte aus'''            
 
     def get_data_from_column(self, column_index: int):
         column_data = self.dataframe[self.dataframe.columns[column_index]]
         print(column_data)
+        return column_data
 
     '''Die Funtion teilt den DataFrame in Trainings- und Testdatensätze auf, 
        wobei 'parameter' die Features ohne die Zielvariable sind und `self.dataframe.columns[target]` 
@@ -50,13 +59,3 @@ class RandomTree:
             stratify=self.dataframe[self.dataframe.columns[target]])
 
         return X_train, X_test, y_train, y_test
-        
-
-
-data = RandomTree('energy')
-data.drop_column(0)
-
-
-
-
-
