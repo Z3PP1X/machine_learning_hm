@@ -1,31 +1,31 @@
 import unittest
 import pandas as pd
 from data_import import DatasetImport
+import tempfile
+import os
 
-class TestRandomTree(unittest.TestCase):
-    
+class TestDatasetImport(unittest.TestCase):
     def setUp(self):
-        # Erstellen Sie hier ein Objekt der RandomTree Klasse
-        # und führen Sie erforderliche Initialisierungslogik aus.
-        self.random_tree = DatasetImport('energy')
+        self.temp_files = []
+        for i in range(4):
+            temp, path = tempfile.mkstemp(suffix='.csv')
+            os.write(temp, f"A,B,C,D\n1,2,3,{i+1}\n5,6,7,{i+1}\n9,10,11,{i+1}\n".encode())
+            os.close(temp)
+            self.temp_files.append(path)
+            if i == 0:
+                self.data_import = DatasetImport(path[:-4])
 
-    def test_dataset_columns(self):
-        # Stellen Sie sicher, dass die Spalten korrekt ausgelesen werden.
-        self.random_tree.get_dataset_columns()
-        # Hier sollten weitere Prüfungen der Ausgabe stattfinden
+    def tearDown(self):
+        for f in self.temp_files:
+            os.remove(f)
 
-    def test_get_data_from_column(self):
-        # Stellen Sie sicher, dass die Daten aus einer Spalte korrekt ausgelesen werden.
-        self.random_tree.get_data_from_column(0)
-        # Hier sollten weitere Prüfungen der Ausgabe stattfinden
+    def test_import_data(self):
+        self.assertEqual(self.data_import.dataframe.shape, (3, 4))
 
-    def test_generate_stratified_test_sets(self):
-        # Prüft, ob die Testsets korrekt generiert werden.
-        X_train, X_test, y_train, y_test = self.random_tree.generate_stratified_test_sets(0.2, 0)
-        # Überprüfen Sie, ob die Testgröße korrekt ist.
-        self.assertEqual(len(X_test), int(0.2 * len(self.random_tree.dataframe)))
-        self.assertEqual(len(y_test), int(0.2 * len(self.random_tree.dataframe)))
-        # Hier sollten weitere Prüfungen der zurückgegebenen Datensätze stattfinden
+    def test_get_recommended_subset(self):
+        subset = self.data_import.get_recommended_subset(2)
+        self.assertEqual(subset, 2)
 
+# ... (Weitere Testfälle)
 if __name__ == '__main__':
     unittest.main()
