@@ -1,13 +1,13 @@
 import unittest
 import pandas as pd
-from data_import import RandomTree
+from data_import import DatasetImport
 
 class TestRandomTree(unittest.TestCase):
     
     def setUp(self):
         # Erstellen Sie hier ein Objekt der RandomTree Klasse
         # und führen Sie erforderliche Initialisierungslogik aus.
-        self.random_tree = RandomTree('energy')
+        self.random_tree = DatasetImport('energy')
 
     def test_dataset_columns(self):
         # Stellen Sie sicher, dass die Spalten korrekt ausgelesen werden.

@@ -2,7 +2,7 @@ import pandas as pd
 from sklearn import tree
 from sklearn.model_selection import train_test_split
 
-class RandomTree:
+class DatasetImport:
 
     def __init__(self, data:str) -> None:
         self.dataframe = None
