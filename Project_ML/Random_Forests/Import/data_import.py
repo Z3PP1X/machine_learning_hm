@@ -1,6 +1,18 @@
 import pandas as pd
-from sklearn import tree
+
 from sklearn.model_selection import train_test_split
+
+def inject_dependency(dependency_attr):
+    def decorator(cls):
+        original_init = cls.__init__
+
+        def __init__(self, *args, **kwargs):
+            original_init(self, *args, **kwargs)
+            setattr(self, dependency_attr, None)
+       
+        cls.__init__ = __init__
+        return cls
+    return decorator
 
 class DatasetImport:
 
@@ -9,6 +21,8 @@ class DatasetImport:
         self.import_data(data)
         self.subset_value = round(pow(self.dataframe.shape[1], 0.5))
         self.get_dataset_columns()
+
+    
 
     def get_recommended_subset(self, subset_value):
         self.subset_value = subset_value
@@ -49,13 +63,4 @@ class DatasetImport:
        Verteilung der Zielklassen erhalten bleibt. Sie gibt die aufgeteilten Trainings- und Testdatensätze 
        für Features (X) und die Zielvariable (y) zurück. '''
 
-    def generate_stratified_test_sets(self, test_size: float, target: int):
-
-        parameter = list(self.dataframe.drop(self.dataframe.columns[target], axis=1).columns)
-        X_train, X_test, y_train, y_test = train_test_split(
-            self.dataframe[parameter],
-            self.dataframe[self.dataframe.columns[target]],
-            test_size=test_size,
-            stratify=self.dataframe[self.dataframe.columns[target]])
-
-        return X_train, X_test, y_train, y_test
+    
