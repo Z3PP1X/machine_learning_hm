@@ -179,7 +179,7 @@ for i, model in enumerate(models):
     plt.plot(predictions_future_df['Year'], predictions_future_df['CO2_emission_sum'], label=f'Modell {i+1} Vorhersage', color='green')
     plt.xlabel('Year')
     plt.ylabel('CO2 Emissionen in Megatonnen')
-    plt.title(f'CO2 Emissions Prediction - Model {i+1}')
+    plt.title(f'CO2 Emissions Voraussage - Modell {i+1}')
     plt.legend()
     plt.savefig(f'C:\\Machine Learning\\machine_learning_hm_new\\machine_learning_hm\\Project_ML\\Random_Forest\\new_figures\\predictions_model{i+1}.png')
     plt.close()
