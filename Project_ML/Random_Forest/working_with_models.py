@@ -67,56 +67,63 @@ class DatasetImport:
         return X_train, X_test, y_train, y_test
     
     def generate_future_data(self, end_year):
-        # Entferne alle Zeilen mit Ländercode 195 oder Energy_Type gleich 0
+    # Filtern des DataFrames
         df_filtered = self.dataframe[
-            (self.dataframe['Country'] != 195) & 
-            (self.dataframe['Energy_type'] != 0)
-        ]
+        (self.dataframe['Country'] != 195) &
+        (self.dataframe['Energy_type'] != 0) &
+        (self.dataframe['Year'] >= 2005)
+    ]
 
-        # Finde den niedrigsten und höchsten Ländercode
+    # Festlegen des niedrigsten und höchsten Ländercodes
         min_country_code = df_filtered['Country'].min()
         max_country_code = df_filtered['Country'].max()
 
         future_data_list = []
-
-        # Wir gehen davon aus, dass 'target_index' für die Zielvariable bekannt ist.
+        energy_type_list = [1, 2, 3, 4, 5]
+    
+    # Wir gehen davon aus, dass 'target_index' für die Zielvariable bekannt ist.
         target_name = self.dataframe.columns[self.target_index]
+        excluded_features = ['Year', 'Country', 'Energy_type', 'CO2_emission']
 
-        # Durchlaufe alle Ländercodes im Bereich von min_country_code bis max_country_code
+    # Regression für jedes Land
         for country_code in range(min_country_code, max_country_code + 1):
             df_country = df_filtered[df_filtered['Country'] == country_code]
-            
+        
             if df_country.empty:
                 continue  # Überspringen, wenn keine Daten für den Ländercode vorhanden sind
 
             start_year = df_country['Year'].max() + 1
-            future_data = pd.DataFrame({'Year': range(start_year, end_year + 1)})
+            future_years = range(start_year, end_year + 1)
+            future_data = pd.DataFrame({'Year': list(future_years)})
 
             # Durchlaufe alle Features außer ausgeschlossene
-            excluded_features = ['Year', 'Country', 'Energy_type', target_name]
-
-            for feature in df_country.columns:
-                if feature not in excluded_features:
+            for feature in set(df_country.columns) - set(excluded_features):
+                if df_country[feature].notna().all():  # Überspringe Feature, wenn NaN-Werte vorhanden sind
                     X = df_country[['Year']]
                     y = df_country[feature]
                     model = LinearRegression()
                     model.fit(X, y)
                     predictions = model.predict(future_data[['Year']])
                     future_data[feature] = abs(predictions)
+        
+        # Nehme den meistgenutzten Energy_type des jeweiligen Landes, der nicht 0 ist
+            for energy_type in energy_type_list:
+                future_data_type = future_data.copy()
+                future_data_type['Country'] = country_code
+                future_data_type['Energy_type'] = energy_type
+                future_data_list.append(future_data_type)
 
-            # Füge 'Country' und 'Energy_type' Informationen zu 'future_data' hinzu
-            future_data['Country'] = country_code
-            # Nehme den meistgenutzten Energy_type des jeweiligen Landes, der nicht 0 ist
-            future_data['Energy_type'] = df_country['Energy_type'].mode()[0]
-
-            future_data_list.append(future_data)
-
-        # Kombiniere alle DataFrames aus der Liste in ein einziges DataFrame
+    # Kombiniere alle DataFrames aus der Liste in ein einziges DataFrame
         combined_future_data = pd.concat(future_data_list, ignore_index=True)
-        desired_order = ['Country', 'Energy_type', 'Year', 'Energy_consumption', 'Energy_production', 'GDP', 'Population', 'Energy_intensity_per_capita', 'Energy_intensity_by_GDP']
+    
+    # Bereinige das DataFrame
+        combined_future_data.dropna(inplace=True)  # Entfernt Zeilen mit NaN-Werten
+        desired_order = [
+    'Country', 'Energy_type', 'Year', 'Energy_consumption', 'Energy_production',
+    'GDP', 'Population', 'Energy_intensity_per_capita', 'Energy_intensity_by_GDP']          
         combined_future_data = combined_future_data[desired_order]
-
-        # Speichere das kombinierte DataFrame in der Klasse für zukünftige Verwendung
+    
+    # Speichere das kombinierte DataFrame in der Klasse für zukünftige Verwendung
         self.df_future = combined_future_data
         return combined_future_data
 
@@ -125,13 +132,15 @@ class DatasetImport:
 if __name__ == '__main__':
     
     data = DatasetImport('energy', 9)
-    data.generate_future_data(2050)
+    data.generate_future_data(2030)
     print(data.df_future)
 
-    model_paths = ['models_2\\best_model_estimators_75_rs2.pkl','models_2\\best_model_estimators_225_rs3.pkl',
-                    'models_2\\best_model_estimators_275_rs0.pkl', 'models_2\\best_model_estimators_300_rs8.pkl',
-                      'models_2\\best_model_estimators_test_size4_150_rs5.pkl', 'models_2\\best_model_estimators_test_size4_200_rs11.pkl',
-                      'models_2\\best_model_estimators_test_size4_325_rs1.pkl']
+    model_paths = [
+    'Project_ML\\Random_Forest\\models_2\\best_model_estimators_test_size4_200_rs11.pkl',
+    'Project_ML\\Random_Forest\\models_2\\best_model_estimators_300_rs8.pkl',
+    'Project_ML\\Random_Forest\\models_2\\best_model_estimators_test_size4_150_rs5.pkl',
+    'Project_ML\\Random_Forest\\models_2\\best_model_estimators_test_size4_325_rs1.pkl',
+]
     models = []
 
     for model_path in model_paths:
@@ -156,6 +165,7 @@ for i, model in enumerate(models):
     'Year': data.df_future['Year'],
     'CO2_emission': prediction
     })
+    
     summed_emissions_by_year = temp_df.groupby('Year', as_index=False)['CO2_emission'].sum()
     predictions_future_df = predictions_future_df.merge(summed_emissions_by_year,
                                                        on='Year', how='left')
@@ -168,11 +178,12 @@ for i, model in enumerate(models):
     plt.plot(historical_co2_emissions['Year'], historical_co2_emissions['CO2_emission'], label='Historische Daten', color='red')
     plt.plot(predictions_future_df['Year'], predictions_future_df['CO2_emission_sum'], label=f'Modell {i+1} Vorhersage', color='green')
     plt.xlabel('Year')
-    plt.ylabel('CO2 Emissions')
+    plt.ylabel('CO2 Emissionen in Megatonnen')
     plt.title(f'CO2 Emissions Prediction - Model {i+1}')
     plt.legend()
-    plt.savefig(f'C:\\Machine Learning\\Jup-Test\\new_figures\\predictions_model{i+1}.png')
+    plt.savefig(f'C:\\Machine Learning\\machine_learning_hm_new\\machine_learning_hm\\Project_ML\\Random_Forest\\new_figures\\predictions_model{i+1}.png')
     plt.close()
+    predictions_future_df['CO2_emission_sum'] = 0
 
 
 
